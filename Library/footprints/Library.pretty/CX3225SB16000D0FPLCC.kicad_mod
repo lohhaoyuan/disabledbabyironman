@@ -1,0 +1,82 @@
+(footprint "CX3225SB16000D0FPLCC"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(property "Reference" "REF**"
+		(at 0 -1.8542 0)
+		(layer "F.SilkS")
+		(uuid "c4921612-3e2d-4941-93c3-6f8aa8760a86")
+		(effects
+			(font
+				(size 0.32 0.32)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "CX3225SB16000D0FPLCC"
+		(at 3.048 1.8288 0)
+		(layer "F.Fab")
+		(uuid "32378c42-37f5-443c-9dcc-ce1e7ab57c28")
+		(effects
+			(font
+				(size 0.32 0.32)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "c18ad0e3-8366-4f7f-92ce-20a710345715")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "8316c32e-4121-4e31-88bd-652890c0b42d")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(pad "1" smd rect
+		(at -1.15 0.92)
+		(size 1.3 1.05)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.102)
+		(uuid "bc4271dd-75e1-4d7a-bc15-30c5d8ac060b")
+	)
+	(pad "2" smd rect
+		(at 1.15 0.92)
+		(size 1.3 1.05)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.102)
+		(uuid "2741cbef-f4e8-4b03-b385-0ea77af91926")
+	)
+	(pad "3" smd rect
+		(at 1.15 -0.92)
+		(size 1.3 1.05)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.102)
+		(uuid "d368de4e-9ad4-4ac0-a568-5cba2dc1de1a")
+	)
+	(pad "4" smd rect
+		(at -1.15 -0.92)
+		(size 1.3 1.05)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(solder_mask_margin 0.102)
+		(uuid "a40768b4-bbf8-4662-b052-152e8245b25a")
+	)
+	(embedded_fonts no)
+)

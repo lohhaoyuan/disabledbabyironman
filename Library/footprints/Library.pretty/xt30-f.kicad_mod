@@ -1,0 +1,221 @@
+(footprint "xt30-f"
+	(version 20240108)
+	(generator "pcbnew")
+	(generator_version "8.0")
+	(layer "F.Cu")
+	(descr "Connector XT30 Vertical Cable Male, https://www.tme.eu/en/Document/3cbfa5cfa544d79584972dd5234a409e/XT30U%20SPEC.pdf")
+	(tags "RC Connector XT30")
+	(property "Reference" "REF**"
+		(at 0 -3.5 180)
+		(layer "F.SilkS")
+		(uuid "dd43e945-df92-4da6-ab52-608938d1c6bd")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.1)
+			)
+		)
+	)
+	(property "Value" "AMASS_XT30-F"
+		(at 0.04 3.81 180)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "10722892-b563-45c0-8db1-a13b0c852111")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Footprint" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "0e51e5b6-585c-4681-9d7f-b556e285b484")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "ab902a8e-35dc-403e-b4b2-5fb46e9066b8")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "657e01e6-0352-4314-b6e1-97efad9e3fd7")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start -5.2 -2.1)
+		(end -5.2 2.1)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "65e0d2f9-da4c-40a2-9b3a-e15714f23d33")
+	)
+	(fp_line
+		(start -4.6 2.7)
+		(end 3.3 2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "18e35bba-1de6-404b-ba92-ce85fce17f7a")
+	)
+	(fp_line
+		(start 3.3 -2.7)
+		(end -4.6 -2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "0e1185ac-615b-4c03-8312-d2ad50d872de")
+	)
+	(fp_line
+		(start 5.2 0.8)
+		(end 5.2 -0.8)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "5ab534e6-bf1a-48d6-9273-20bc7e8d9589")
+	)
+	(fp_arc
+		(start -5.2 -2.1)
+		(mid -5.024264 -2.524264)
+		(end -4.6 -2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "9931d06a-e9ea-44f8-887c-68d213482558")
+	)
+	(fp_arc
+		(start -4.6 2.7)
+		(mid -5.024264 2.524264)
+		(end -5.2 2.1)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "8499a515-0bbd-43da-b46d-2cbec2ecb95e")
+	)
+	(fp_arc
+		(start 3.3 -2.7)
+		(mid 4.643503 -2.143503)
+		(end 5.2 -0.8)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "9f7cf55c-d783-4328-a1b1-510f5c7377d9")
+	)
+	(fp_arc
+		(start 5.2 0.8)
+		(mid 4.643503 2.143503)
+		(end 3.3 2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "d7ed0253-0052-4099-9115-3ec4d7c14897")
+	)
+	(fp_rect
+		(start -5.3 -2.8)
+		(end 5.3 2.8)
+		(stroke
+			(width 0.05)
+			(type dash)
+		)
+		(fill none)
+		(layer "F.CrtYd")
+		(uuid "3792a221-2047-4859-b56b-5bf086a12f43")
+	)
+	(pad "1" thru_hole roundrect
+		(at -2.5 0 180)
+		(size 3 3)
+		(drill 1.8)
+		(layers "*.Cu" "*.Mask" "Dwgs.User")
+		(remove_unused_layers no)
+		(roundrect_rratio 0.1)
+		(teardrops
+			(best_length_ratio 0.5)
+			(max_length 1)
+			(best_width_ratio 1)
+			(max_width 3)
+			(curve_points 10)
+			(filter_ratio 0.9)
+			(enabled yes)
+			(allow_two_segments yes)
+			(prefer_zone_connections yes)
+		)
+		(uuid "2b1ec5c7-48e3-493a-9ac8-e3d7186b6b9e")
+	)
+	(pad "2" thru_hole circle
+		(at 2.5 0 180)
+		(size 3 3)
+		(drill 1.8)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(teardrops
+			(best_length_ratio 0.5)
+			(max_length 1)
+			(best_width_ratio 1)
+			(max_width 3)
+			(curve_points 10)
+			(filter_ratio 0.9)
+			(enabled yes)
+			(allow_two_segments yes)
+			(prefer_zone_connections yes)
+		)
+		(uuid "4afc9e85-8b2a-4665-901f-7a72bf53cc89")
+	)
+	(group ""
+		(uuid "c7153e42-fe5a-4540-9630-38bc8a82f95b")
+		(members "0e1185ac-615b-4c03-8312-d2ad50d872de" "18e35bba-1de6-404b-ba92-ce85fce17f7a"
+			"5ab534e6-bf1a-48d6-9273-20bc7e8d9589" "65e0d2f9-da4c-40a2-9b3a-e15714f23d33"
+			"8499a515-0bbd-43da-b46d-2cbec2ecb95e" "9931d06a-e9ea-44f8-887c-68d213482558"
+			"9f7cf55c-d783-4328-a1b1-510f5c7377d9" "d7ed0253-0052-4099-9115-3ec4d7c14897"
+		)
+	)
+	(model "${KIPRJMOD}/3dmodels/XT30UPB-F.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz -90 0 0)
+		)
+	)
+)

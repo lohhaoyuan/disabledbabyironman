@@ -1,0 +1,251 @@
+(footprint "xt60-f"
+	(version 20240108)
+	(generator "pcbnew")
+	(generator_version "8.0")
+	(layer "F.Cu")
+	(descr "AMASS female XT60, through hole, vertical, https://www.tme.eu/Document/2d152ced3b7a446066e6c419d84bb460/XT60%20SPEC.pdf")
+	(tags "XT60 female vertical")
+	(property "Reference" "REF**"
+		(at -5.6 -4.9 0)
+		(layer "F.SilkS")
+		(uuid "fefbb807-b322-4310-8d36-ac315218ec23")
+		(effects
+			(font
+				(size 0.8 0.8)
+				(thickness 0.1)
+			)
+		)
+	)
+	(property "Value" "AMASS_XT60-M"
+		(at 0 5.08 0)
+		(layer "F.Fab")
+		(uuid "c095740d-af14-408b-99fe-afc6d1cfd594")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Footprint" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "befa7fd5-d70a-4e8b-82dc-b089e53b4db4")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "a59d6e56-a7f0-4984-ae5d-51b4b9a1fd23")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "f4dea76d-70e3-48ff-9d2e-a654e9cd64b0")
+		(effects
+			(font
+				(size 1.27 1.27)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr through_hole)
+	(fp_line
+		(start -7.75 -4.05)
+		(end 4.95 -4.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "e078ff4d-0b0a-4496-ae04-d58a1e3b54e7")
+	)
+	(fp_line
+		(start -7.75 4.05)
+		(end -7.75 -4.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "57a9c6d0-7d73-48fe-9292-9a14e6052acb")
+	)
+	(fp_line
+		(start 4.95 -4.05)
+		(end 7.95 -1.125)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "02ded9a0-f24b-413d-8d5b-414301a4e017")
+	)
+	(fp_line
+		(start 4.95 4.05)
+		(end -7.75 4.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "b6f2a7f9-46ae-444a-9c8d-f9e3de2d4c21")
+	)
+	(fp_line
+		(start 7.95 1.125)
+		(end 4.95 4.05)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "bbdcf6df-0e97-4eb9-86a3-c821eadeef71")
+	)
+	(fp_line
+		(start 7.95 1.125)
+		(end 7.95 -1.125)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "2c372c7a-d199-439b-b048-53f4dcd1a6fb")
+	)
+	(fp_rect
+		(start -8 -4.3)
+		(end 8.2 4.3)
+		(stroke
+			(width 0.05)
+			(type dash)
+		)
+		(fill none)
+		(layer "F.CrtYd")
+		(uuid "e7b19d2e-9125-479a-bc11-9756e731492e")
+	)
+	(fp_line
+		(start -7.75 -4.05)
+		(end 4.95 -4.05)
+		(stroke
+			(width 0.1)
+			(type dash)
+		)
+		(layer "F.Fab")
+		(uuid "f7d25344-5f28-4ee3-9268-a3331214968c")
+	)
+	(fp_line
+		(start -7.75 4.05)
+		(end -7.75 -4.05)
+		(stroke
+			(width 0.1)
+			(type dash)
+		)
+		(layer "F.Fab")
+		(uuid "f94e53ca-bb36-459d-a00d-fa50643089e1")
+	)
+	(fp_line
+		(start 4.95 -4.05)
+		(end 7.95 -1.125)
+		(stroke
+			(width 0.1)
+			(type dash)
+		)
+		(layer "F.Fab")
+		(uuid "ed9b5950-959e-4d67-87c5-6d35caf03757")
+	)
+	(fp_line
+		(start 4.95 4.05)
+		(end -7.75 4.05)
+		(stroke
+			(width 0.1)
+			(type dash)
+		)
+		(layer "F.Fab")
+		(uuid "5b613f0c-d9e0-4e3f-8518-9250436e0b1d")
+	)
+	(fp_line
+		(start 7.95 1.125)
+		(end 4.95 4.05)
+		(stroke
+			(width 0.1)
+			(type dash)
+		)
+		(layer "F.Fab")
+		(uuid "217db49d-8a25-4b3c-ba4e-c290f3edf896")
+	)
+	(fp_line
+		(start 7.95 1.125)
+		(end 7.95 -1.125)
+		(stroke
+			(width 0.1)
+			(type dash)
+		)
+		(layer "F.Fab")
+		(uuid "83486337-5ebc-49c8-a7fb-d35ec2746fa5")
+	)
+	(pad "1" thru_hole roundrect
+		(at -3.6 0)
+		(size 6 6)
+		(drill 4.5)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(roundrect_rratio 0.1)
+		(teardrops
+			(best_length_ratio 0.5)
+			(max_length 1)
+			(best_width_ratio 1)
+			(max_width 6)
+			(curve_points 10)
+			(filter_ratio 0.9)
+			(enabled yes)
+			(allow_two_segments yes)
+			(prefer_zone_connections yes)
+		)
+		(uuid "e094b112-489d-4be4-ad80-0cd86a3c293d")
+	)
+	(pad "2" thru_hole circle
+		(at 3.6 0)
+		(size 6 6)
+		(drill 4.5)
+		(layers "*.Cu" "*.Mask")
+		(remove_unused_layers no)
+		(teardrops
+			(best_length_ratio 0.5)
+			(max_length 1)
+			(best_width_ratio 1)
+			(max_width 6)
+			(curve_points 10)
+			(filter_ratio 0.9)
+			(enabled no)
+			(allow_two_segments yes)
+			(prefer_zone_connections yes)
+		)
+		(uuid "01d849e7-e938-4c8d-83d4-c4c9b42c6499")
+	)
+	(model "${KIPRJMOD}/3dmodels/XT60UPB-M.step"
+		(offset
+			(xyz 0 0 0)
+		)
+		(scale
+			(xyz 1 1 1)
+		)
+		(rotate
+			(xyz 90 0 0)
+		)
+	)
+)

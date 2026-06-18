@@ -1,0 +1,19 @@
+{
+  "MultiLineText": "",
+  "HeightCtrl": 1.2,
+  "FontComboBox": "AOTFShinGoProDeBold",
+  "LayerComboBox": "F.SilkS",
+  "CapLeftChoice": "[",
+  "CapRightChoice": "]",
+  "PaddingTopCtrl": 2.0,
+  "PaddingLeftCtrl": 2.0,
+  "PaddingRightCtrl": 2.0,
+  "PaddingBottomCtrl": 2.0,
+  "LineSpacingCtrl": 0.2,
+  "WidthCtrl": 0.0,
+  "AlignmentChoice": "Center",
+  "advancedCheckbox": true,
+  "inlineFormatTextbox": true,
+  "lineoverStyleChoice": "Square",
+  "lineoverThicknessCtrl": 1
+}
