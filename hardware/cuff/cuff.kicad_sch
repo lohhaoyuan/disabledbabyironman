@@ -7797,9 +7797,11 @@
 		)
 		(pin "34"
 			(uuid "f62918f4-ec06-4d77-9d07-24ce8e8456c7")
+			(alternate "SYS_JTMS-SWDIO")
 		)
 		(pin "37"
 			(uuid "32a2d0df-5781-4a46-902a-12db5c51d393")
+			(alternate "SYS_JTCK-SWCLK")
 		)
 		(pin "35"
 			(uuid "2c537a89-4d84-47e8-b9ca-8cbea42c5832")

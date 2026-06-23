@@ -1,18 +1,23 @@
 #include <Arduino.h>
-
-// put function declarations here:
-int myFunction(int, int);
+#include "main.h"
+IMUData imuData;
+PacketSerial bluetoothPacketSerial;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+    delay(1000);
+    Serial.begin(115200);
+    BluetoothSerial.begin(115200);
+    bluetoothPacketSerial.setStream(&BluetoothSerial);
+
+    Serial.println("setup serial");
+    setupIMU();
+    Serial.println("live");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+    printIMUData();
+    updateIMU();
+    sendIMUData();
+    Serial1.println("ping");
+    // Serial.println("Sent");
 }
