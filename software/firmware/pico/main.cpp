@@ -8,14 +8,16 @@
 //  Core 0: drains the ring through the signal chain (emg.h), serves HTTP +
 //          WebSocket, and broadcasts a JSON frame every 1/BROADCAST_HZ s.
 //
-//  Serial (115200) debug commands: b = calibrate rest, m = calibrate max effort,
-//  p = print settings, r = reset settings to defaults, x = erase everything.
+//  Serial (115200) debug commands: b = calibrate rest, m = calibrate max effort
+//  (manual mode), a = forget learned auto max, p = print settings,
+//  r = reset settings to defaults, x = erase everything.
 //  Pins: see pins.h.  Message format: see ../shared/protocol.h.
 // =============================================================================
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <atomic>
+#include <algorithm>
 #include "hardware/adc.h"
 
 #include "pins.h"
@@ -65,7 +67,7 @@ const char* phaseStr(CalPhase p) {
 // ---------------------------------------------------------------------------
 // Outgoing messages
 // ---------------------------------------------------------------------------
-static char frame[1536];
+static char frame[1792];
 
 // Telemetry frame (see protocol.h). Built by hand: fast, no heap churn.
 void sendFrame() {
@@ -76,11 +78,16 @@ void sendFrame() {
     n += snprintf(frame + n, sizeof frame - n, i ? ",%u" : "%u", raw_buf[i]);
   n += snprintf(frame + n, sizeof frame - n,
                 "],\"raw_hz\":%lu,\"env\":%.2f,\"act\":%.4f,\"baseline\":%ld,\"rest\":%.2f,\"mvc\":%.2f,"
+                "\"mvc_mode\":\"%s\",\"mvc_manual\":%.2f,\"auto_hist_s\":%lu,"
                 "\"has_baseline\":%s,\"has_mvc\":%s,\"status\":\"%s\","
-                "\"cfg\":{\"window_ms\":%u,\"gain\":%.3f,\"deadband\":%.3f}",
+                "\"cfg\":{\"window_ms\":%u,\"gain\":%.3f,\"deadband\":%.3f,"
+                "\"auto_mvc\":%s,\"auto_window_s\":%u,\"auto_floor_x\":%.2f}",
                 (unsigned long)RAW_HZ, emg.envelope(), emg.activation(), lroundf(c.baseline), c.rest_env,
-                c.mvc, c.has_baseline ? "true" : "false", c.has_mvc ? "true" : "false",
-                statusStr(emg.status()), g.window_ms, g.gain, g.deadband);
+                emg.reference(), g.auto_mvc ? "auto" : "manual", c.mvc,
+                (unsigned long)std::min<uint32_t>(emg.autoHistorySeconds(), g.auto_window_s),
+                c.has_baseline ? "true" : "false", c.has_mvc ? "true" : "false",
+                statusStr(emg.status()), g.window_ms, g.gain, g.deadband,
+                g.auto_mvc ? "true" : "false", g.auto_window_s, g.auto_floor_x);
   if (emg.calPhase() != CalPhase::None)
     n += snprintf(frame + n, sizeof frame - n, ",\"cal\":{\"phase\":\"%s\",\"remaining_ms\":%lu}",
                   phaseStr(emg.calPhase()), (unsigned long)emg.calRemainingMs());
@@ -130,12 +137,19 @@ void handleCommand(int client, const char* text, size_t len) {
     if (d["window_ms"].is<int>())   cfg.window_ms = d["window_ms"].as<int>();
     if (d["gain"].is<float>())      cfg.gain      = d["gain"].as<float>();
     if (d["deadband"].is<float>())  cfg.deadband  = d["deadband"].as<float>();
+    if (d["auto_mvc"].is<bool>())   cfg.auto_mvc  = d["auto_mvc"].as<bool>();
+    if (d["auto_window_s"].is<int>()) cfg.auto_window_s = d["auto_window_s"].as<int>();
+    if (d["auto_floor_x"].is<float>()) cfg.auto_floor_x = d["auto_floor_x"].as<float>();
     emg.setConfig(cfg);
     settings::save(emg.config(), emg.calibration());
-    char msg[96];
-    snprintf(msg, sizeof msg, "window %u ms, gain %.2f, deadband %.2f", emg.config().window_ms,
-             emg.config().gain, emg.config().deadband);
+    const auto& g = emg.config();
+    char msg[160];
+    snprintf(msg, sizeof msg, "window %u ms, gain %.2f, deadband %.2f, max %s (%u s, floor %.1fx rest)",
+             g.window_ms, g.gain, g.deadband, g.auto_mvc ? "auto" : "manual", g.auto_window_s, g.auto_floor_x);
     sendEvent("set", true, msg);
+  } else if (!strcmp(cmd, "reset_auto")) {
+    emg.resetAuto();
+    sendEvent("reset_auto", true, "learned max cleared; relearning from now");
   } else if (!strcmp(cmd, "reset_settings")) {
     emg.setConfig(EmgConfig{});
     settings::save(emg.config(), emg.calibration());
@@ -154,6 +168,7 @@ void handleSerial() {
     case 'b': startCal(true, -1); break;
     case 'm': startCal(false, -1); break;
     case 'r': handleCommand(-1, "{\"cmd\":\"reset_settings\"}", 24); break;
+    case 'a': handleCommand(-1, "{\"cmd\":\"reset_auto\"}", 19); break;
     case 'x':
       settings::erase();
       emg.begin(EmgConfig{}, EmgCalibration{}, onCalibrationDone);
@@ -162,8 +177,11 @@ void handleSerial() {
     case 'p': {
       const auto& c = emg.calibration();
       const auto& g = emg.config();
-      Serial.printf("cfg: window=%u ms gain=%.2f deadband=%.2f | cal: baseline=%.1f(%d) rest=%.2f mvc=%.2f(%d)\n",
-                    g.window_ms, g.gain, g.deadband, c.baseline, c.has_baseline, c.rest_env, c.mvc, c.has_mvc);
+      Serial.printf("cfg: window=%u ms gain=%.2f deadband=%.2f max=%s(%u s, floor %.1fx) | cal: baseline=%.1f(%d) "
+                    "rest=%.2f manual_mvc=%.2f(%d) | ref in use=%.2f (%lu s history)\n",
+                    g.window_ms, g.gain, g.deadband, g.auto_mvc ? "auto" : "manual", g.auto_window_s,
+                    g.auto_floor_x, c.baseline, c.has_baseline, c.rest_env, c.mvc, c.has_mvc, emg.reference(),
+                    (unsigned long)emg.autoHistorySeconds());
       break;
     }
     default: break;
@@ -237,8 +255,8 @@ void loop() {
   static uint32_t last_print = 0;
   if (now - last_print >= 1000) {
     last_print = now;
-    Serial.printf("[emg] status=%s env=%.1f act=%.3f clients=%u ip=%s lost=%lu\n",
-                  statusStr(emg.status()), emg.envelope(), emg.activation(), net::clientCount(),
+    Serial.printf("[emg] status=%s env=%.1f ref=%.1f act=%.3f clients=%u ip=%s lost=%lu\n",
+                  statusStr(emg.status()), emg.envelope(), emg.reference(), emg.activation(), net::clientCount(),
                   net::ip().toString().c_str(),
                   (unsigned long)(ring::overflow.load() + ring::resync.load() + raw_dropped));
   }

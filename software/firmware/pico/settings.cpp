@@ -3,7 +3,7 @@
 
 namespace {
 constexpr uint32_t MAGIC   = 0xCE7AD001;
-constexpr uint16_t VERSION = 1;
+constexpr uint16_t VERSION = 2;   // v2: auto max settings (v1 blobs fall back to defaults)
 
 struct __attribute__((packed)) Blob {
   uint32_t magic;
@@ -16,6 +16,9 @@ struct __attribute__((packed)) Blob {
   float    baseline;
   float    rest_env;
   float    mvc;
+  uint8_t  auto_mvc;
+  uint16_t auto_window_s;
+  float    auto_floor_x;
   uint32_t crc;
 };
 
@@ -49,6 +52,9 @@ bool load(EmgConfig& cfg, EmgCalibration& cal) {
   cfg.window_ms    = b.window_ms;
   cfg.gain         = b.gain;
   cfg.deadband     = b.deadband;
+  cfg.auto_mvc      = b.auto_mvc;
+  cfg.auto_window_s = b.auto_window_s;
+  cfg.auto_floor_x  = b.auto_floor_x;
   cal.has_baseline = b.has_baseline;
   cal.has_mvc      = b.has_mvc;
   cal.baseline     = b.baseline;
@@ -65,6 +71,9 @@ void save(const EmgConfig& cfg, const EmgCalibration& cal) {
   b.window_ms    = cfg.window_ms;
   b.gain         = cfg.gain;
   b.deadband     = cfg.deadband;
+  b.auto_mvc      = cfg.auto_mvc;
+  b.auto_window_s = cfg.auto_window_s;
+  b.auto_floor_x  = cfg.auto_floor_x;
   b.has_baseline = cal.has_baseline;
   b.has_mvc      = cal.has_mvc;
   b.baseline     = cal.baseline;

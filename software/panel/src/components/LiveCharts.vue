@@ -3,7 +3,7 @@
  * Two stacked uPlot charts on one synced time axis (never a dual y-axis):
  *   1. Activation 0–100 % (what the display receives as drive)
  *   2. Envelope in ADC counts, with optional raw (centred on baseline) behind it,
- *      and dashed rest / MVC reference lines.
+ *      and dashed rest / 100 % (auto or manual max) reference lines.
  * Data lives in a fixed-size ring; redraws are rAF-throttled.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -46,7 +46,7 @@ let ro: ResizeObserver | null = null
 function ingest(f: EmgFrame) {
   baseline = f.has_baseline ? f.baseline : NaN
   rest = f.has_baseline ? f.rest : NaN
-  mvc = f.has_mvc ? f.mvc : NaN
+  mvc = f.has_baseline && (f.mvc_mode === 'auto' || f.has_mvc) ? f.mvc : NaN
   const n = f.raw.length
   if (!n) {
     ring.push({ t: f.t, raw: NaN, env: f.env, act: f.act })
@@ -97,7 +97,7 @@ function refLines(u: uPlot) {
   const ctx = u.ctx
   const lines: [number, string][] = []
   if (Number.isFinite(rest)) lines.push([rest, 'rest'])
-  if (Number.isFinite(mvc)) lines.push([mvc, 'MVC'])
+  if (Number.isFinite(mvc)) lines.push([mvc, '100 %'])
   ctx.save()
   ctx.setLineDash([6, 4])
   ctx.lineWidth = 1.5 * devicePixelRatio

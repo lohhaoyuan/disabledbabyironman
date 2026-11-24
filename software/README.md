@@ -109,7 +109,7 @@ keep `V` low and check the can temperature.
    pio device monitor -e pico
    ```
    It prints the IP, the URLs, and a 1 Hz status line. Serial keys: `b` calibrate rest, `m` calibrate
-   max effort, `p` print settings, `r` reset settings, `x` erase settings + calibration.
+   max effort (manual mode), `a` reset learned max, `p` print settings, `r` reset settings, `x` erase settings + calibration.
 
 Settings and calibration are stored in the Pico's EEPROM-emulation flash sector, **separate from
 LittleFS**, so re-running `uploadfs` (or re-flashing firmware) does not wipe calibration.
@@ -168,27 +168,42 @@ no offline cache. That doesn't matter, because it is loaded from the Pico on the
 
 ## 5. Calibration procedure
 
-Do this with the electrodes on and the child settled. Use the panel (or serial `b` / `m`).
+Do this with the electrodes on and the child settled. Use the panel (or serial `b`).
 
 1. **Check the signal.** Status badge should be *Needs calibration* (not *Sensor fault*). Turn on
    *Show raw*: there should be visible noise; a dead-flat line means electrode/cable problem.
 2. **Calibrate rest** (5 s, after a 3-2-1 countdown). Keep the limb relaxed and still. The first 3 s
    give the **baseline** (mean ADC level), the last 2 s the **rest envelope** (noise floor).
-3. **Calibrate max effort** (4 s). Elicit the strongest contraction you can. The peak envelope
-   becomes the **MVC**. If the peak is less than 2× the rest level it is rejected and the old
-   value is kept.
+   That's all that's needed: the badge goes to *Connected*.
+3. **"100 %" is learned automatically (Auto max, the default).** Babies can't do a max-effort
+   contraction on command, so the Pico learns it from what the child actually does:
+   * Every second it records the peak envelope. "100 %" = the **90th percentile of those
+     per-second peaks over the last 60 s** (*Learning window*, 10–300 s), and always ignores at
+     least the single strongest second. One spike or bump can't set it; roughly 6 s of real effort
+     per minute will.
+   * It never goes below the **minimum max** = *Minimum max* × rest (default 5×, at least rest + 10
+     counts). Right after rest calibration, and whenever the child has been quiet for a whole
+     window, this minimum is what's used, so early on small efforts already give a lot of drive.
+   * It only learns while the status is *ok* (never during calibration or a sensor fault), restarts
+     after every rest calibration, and **Reset learned max** clears it (e.g. new child or electrodes
+     moved). It is not saved across power cycles.
+   * **Research note:** the target moves with the child. As they push harder, the same effort
+     gives less reward. Log the `mvc` column (it is the reference in use) and report the rule.
+   * Turn *Auto max* off to go back to a fixed **manual max effort** calibration (4 s; rejected
+     if the peak is under 2× rest).
 4. **Tune** in *Signal settings* and press *Apply* (saved on the Pico):
    * **Smoothing window** (50–500 ms, default 150): longer = steadier but laggier.
    * **Gain** (default 1): >1 means less effort is needed for full drive (useful when the MVC
      captured was an over-estimate).
    * **Deadband** (default 5 %): activation below this is 0, so resting noise never moves the dog.
 
-Activation = `clamp(gain · (envelope − rest) / (MVC − rest), 0, 1)`, then the deadband. It is forced
-to 0 while calibrating, before both calibrations exist, and during a sensor fault (signal flat or
+Activation = `clamp(gain · (envelope − rest) / (max − rest), 0, 1)`, then the deadband, where
+*max* is the auto-learned or manual reference. It is forced to 0 while calibrating, before rest
+calibration (and in manual mode before max effort), and during a sensor fault (signal flat or
 pinned at a rail for more than 500 ms).
 
-Re-calibrating rest invalidates the MVC if it ends up too close to the new rest level (you'll be
-told to redo max effort).
+In manual mode, re-calibrating rest invalidates the max effort value if it ends up too close to the
+new rest level (you'll be told to redo it).
 
 ## 6. Research log
 
@@ -219,14 +234,17 @@ See `firmware/shared/protocol.h`. Pico → clients at 20 Hz:
 
 ```json
 {"t":123456,"raw":[2010,2013,...],"raw_hz":500,"env":12.3,"act":0.42,"baseline":2010,"rest":3.1,
- "mvc":110.5,"has_baseline":true,"has_mvc":true,"status":"ok",
- "cfg":{"window_ms":150,"gain":1.0,"deadband":0.05},"lost":0}
+ "mvc":110.5,"mvc_mode":"auto","mvc_manual":0,"auto_hist_s":60,
+ "has_baseline":true,"has_mvc":false,"status":"ok",
+ "cfg":{"window_ms":150,"gain":1.0,"deadband":0.05,"auto_mvc":true,"auto_window_s":60,"auto_floor_x":5},
+ "lost":0}
 ```
 
 plus `"cal":{"phase":"mvc","remaining_ms":2300}` while calibrating, and one-off events
 `{"event":"calibrate_mvc","ok":true,"msg":"..."}`. Clients send
 `{"cmd":"calibrate_baseline"}`, `{"cmd":"calibrate_mvc"}`,
-`{"cmd":"set","window_ms":150,"gain":1,"deadband":0.05}` (any subset), `{"cmd":"reset_settings"}`.
+`{"cmd":"set","window_ms":150,"gain":1,"deadband":0.05,"auto_mvc":true,"auto_window_s":60,"auto_floor_x":5}`
+(any subset), `{"cmd":"reset_auto"}`, `{"cmd":"reset_settings"}`. `mvc` is always the reference in use.
 `status` adds `uncalibrated` to the requested `ok|calibrating|sensor_fault`.
 
 ---
@@ -259,6 +277,8 @@ within 1 s when the link dies, both reconnect automatically, display unchanged w
 * Sampling is 1 kHz on core 1 (deadline-paced on the µs timer); `raw[]` is decimated to 500 Hz to
   keep frames small. Change `RAW_DECIMATE` in `protocol.h` for full rate.
 * Settings use EEPROM emulation rather than a LittleFS file, so `uploadfs` can't wipe calibration.
+* Settings format changed (v2, for auto max): a Pico that already has saved settings starts from
+  defaults once after this update, so redo rest calibration.
 * The panel's "drive sent to display" is `act` as broadcast by the Pico; the display smooths it
   further internally (τ = 90 ms) and does not report back.
 * The bridge never calls `setContingency()`; contingency stays under manual/debug control.

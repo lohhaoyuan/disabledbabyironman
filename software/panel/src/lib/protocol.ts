@@ -10,7 +10,10 @@ export interface EmgFrame {
   act: number            // 0..1, what the reward display uses as drive
   baseline: number       // ADC counts
   rest: number           // envelope at rest
-  mvc: number            // envelope at max voluntary contraction
+  mvc: number            // the "100 %" reference in use (auto-learned or manual)
+  mvc_mode: 'auto' | 'manual'
+  mvc_manual: number     // manual max-effort calibration value
+  auto_hist_s: number    // seconds of history the auto reference is based on
   has_baseline: boolean
   has_mvc: boolean
   status: SensorStatus
@@ -23,6 +26,9 @@ export interface EmgSettings {
   window_ms: number
   gain: number
   deadband: number
+  auto_mvc: boolean      // learn "100 %" from the session instead of max-effort calibration
+  auto_window_s: number  // seconds of history used for the auto reference
+  auto_floor_x: number   // auto reference never below rest × this
 }
 
 export interface EmgEvent {
@@ -35,6 +41,7 @@ export type Command =
   | { cmd: 'calibrate_baseline' }
   | { cmd: 'calibrate_mvc' }
   | ({ cmd: 'set' } & Partial<EmgSettings>)
+  | { cmd: 'reset_auto' }
   | { cmd: 'reset_settings' }
 
 export const WS_PORT = 81
@@ -45,6 +52,8 @@ export const LIMITS = {
   window_ms: { min: 50, max: 500, step: 10 },
   gain: { min: 0.1, max: 5, step: 0.05 },
   deadband: { min: 0, max: 0.5, step: 0.01 },
+  auto_window_s: { min: 10, max: 300, step: 10 },
+  auto_floor_x: { min: 2, max: 20, step: 0.5 },
 } as const
 
 export function isFrame(m: unknown): m is EmgFrame {

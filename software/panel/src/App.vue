@@ -81,7 +81,9 @@ const calProgress = computed(() => {
 const lastCalEvent = computed(() => sock.events.value.find((e) => e.event.startsWith('calibrate')))
 
 // ---------------------------------------------------------------- settings
-const draft = reactive<EmgSettings>({ window_ms: 150, gain: 1, deadband: 0.05 })
+const draft = reactive<EmgSettings>({
+  window_ms: 150, gain: 1, deadband: 0.05, auto_mvc: true, auto_window_s: 60, auto_floor_x: 5,
+})
 const draftDirty = ref(false)
 watch(
   () => f.value?.cfg,
@@ -89,11 +91,21 @@ watch(
     if (cfg && !draftDirty.value) Object.assign(draft, cfg)
   },
 )
-function setDraft<K extends keyof EmgSettings>(k: K, v: number[] | undefined) {
+type NumKey = Exclude<keyof EmgSettings, 'auto_mvc'>
+function setDraft(k: NumKey, v: number[] | undefined) {
   if (!v) return
-  draft[k] = v[0] as EmgSettings[K]
+  draft[k] = v[0]
   draftDirty.value = true
 }
+const autoDraft = computed({
+  get: () => draft.auto_mvc,
+  set: (v: boolean) => {
+    draft.auto_mvc = v
+    draftDirty.value = true
+  },
+})
+const autoMode = computed(() => f.value?.cfg.auto_mvc ?? true)
+const hasRef = computed(() => !!f.value?.has_baseline && (f.value.mvc_mode === 'auto' || f.value.has_mvc))
 function applySettings() {
   if (sock.send({ cmd: 'set', ...draft })) draftDirty.value = false
 }
@@ -191,8 +203,14 @@ const fmt = (v: number | undefined, d = 1) => (v == null || !Number.isFinite(v) 
             <dl class="mt-3 grid grid-cols-3 gap-2 text-sm">
               <div><dt class="text-muted-foreground">Baseline</dt><dd class="font-medium tabular-nums">{{ f?.has_baseline ? f.baseline : '–' }}</dd></div>
               <div><dt class="text-muted-foreground">Rest</dt><dd class="font-medium tabular-nums">{{ f?.has_baseline ? fmt(f.rest) : '–' }}</dd></div>
-              <div><dt class="text-muted-foreground">MVC</dt><dd class="font-medium tabular-nums">{{ f?.has_mvc ? fmt(f.mvc) : '–' }}</dd></div>
+              <div>
+                <dt class="text-muted-foreground">{{ autoMode ? 'Max (auto)' : 'Max (manual)' }}</dt>
+                <dd class="font-medium tabular-nums">{{ hasRef ? fmt(f?.mvc) : '–' }}</dd>
+              </div>
             </dl>
+            <div v-if="autoMode && f?.has_baseline" class="mt-2 text-xs text-muted-foreground">
+              {{ f.auto_hist_s < 5 ? 'Learning: using the minimum until 5 s of data' : `Learned from the last ${f.auto_hist_s} s` }}
+            </div>
             <div v-if="f && f.lost > 0" class="mt-2 text-xs text-amber-800">{{ f.lost }} samples dropped on Pico</div>
           </CardContent>
         </Card>
@@ -230,14 +248,20 @@ const fmt = (v: number | undefined, d = 1) => (v == null || !Number.isFinite(v) 
         <Card>
           <CardHeader>
             <CardTitle>Calibration</CardTitle>
-            <CardDescription>Rest first, then max effort. Values are saved on the Pico.</CardDescription>
+            <CardDescription v-if="autoMode">
+              Only rest is needed. "100 %" is learned from the child's own strongest recent efforts.
+            </CardDescription>
+            <CardDescription v-else>Rest first, then max effort. Values are saved on the Pico.</CardDescription>
           </CardHeader>
           <CardContent class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
               <Button size="lg" variant="outline" class="h-14 text-base" :disabled="!live || !!calRunning || !!prep.phase" @click="calibrate('baseline')">
                 Calibrate rest
               </Button>
-              <Button size="lg" variant="outline" class="h-14 text-base" :disabled="!live || !!calRunning || !!prep.phase || !f?.has_baseline" @click="calibrate('mvc')">
+              <Button v-if="autoMode" size="lg" variant="outline" class="h-14 text-base" :disabled="!live || !f?.has_baseline" @click="sock.send({ cmd: 'reset_auto' })">
+                Reset learned max
+              </Button>
+              <Button v-else size="lg" variant="outline" class="h-14 text-base" :disabled="!live || !!calRunning || !!prep.phase || !f?.has_baseline" @click="calibrate('mvc')">
                 Calibrate max effort
               </Button>
             </div>
@@ -287,6 +311,25 @@ const fmt = (v: number | undefined, d = 1) => (v == null || !Number.isFinite(v) 
             <div class="space-y-2">
               <div class="flex justify-between text-sm"><Label>Deadband</Label><span class="tabular-nums">{{ (draft.deadband * 100).toFixed(0) }} %</span></div>
               <Slider :model-value="[draft.deadband]" :min="LIMITS.deadband.min" :max="LIMITS.deadband.max" :step="LIMITS.deadband.step" @update:model-value="(v) => setDraft('deadband', v)" />
+            </div>
+            <div class="space-y-4 rounded-md border p-3">
+              <label class="flex items-center justify-between gap-3 text-sm">
+                <span>
+                  <span class="font-medium">Auto max</span>
+                  <span class="block text-xs text-muted-foreground">Learn "100 %" from the session, no max-effort calibration</span>
+                </span>
+                <Switch v-model="autoDraft" />
+              </label>
+              <template v-if="draft.auto_mvc">
+                <div class="space-y-2">
+                  <div class="flex justify-between text-sm"><Label>Learning window</Label><span class="tabular-nums">{{ draft.auto_window_s }} s</span></div>
+                  <Slider :model-value="[draft.auto_window_s]" :min="LIMITS.auto_window_s.min" :max="LIMITS.auto_window_s.max" :step="LIMITS.auto_window_s.step" @update:model-value="(v) => setDraft('auto_window_s', v)" />
+                </div>
+                <div class="space-y-2">
+                  <div class="flex justify-between text-sm"><Label>Minimum max</Label><span class="tabular-nums">{{ draft.auto_floor_x.toFixed(1) }} × rest</span></div>
+                  <Slider :model-value="[draft.auto_floor_x]" :min="LIMITS.auto_floor_x.min" :max="LIMITS.auto_floor_x.max" :step="LIMITS.auto_floor_x.step" @update:model-value="(v) => setDraft('auto_floor_x', v)" />
+                </div>
+              </template>
             </div>
             <div class="flex gap-2">
               <Button :disabled="!live || !draftDirty" @click="applySettings">Apply</Button>
