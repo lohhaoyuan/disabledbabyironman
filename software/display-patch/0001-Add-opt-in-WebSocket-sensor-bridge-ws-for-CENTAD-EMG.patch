@@ -1,0 +1,226 @@
+From 9c5ec3beee948b2f4dc4f8eb371741b3e47fe4d5 Mon Sep 17 00:00:00 2001
+From: hao yuan <221409L@student.hci.edu.sg>
+Date: Tue, 24 Nov 2026 13:41:21 +0800
+Subject: [PATCH] Add opt-in WebSocket sensor bridge (?ws=) for CENTAD EMG node
+
+setDrive(act) per message, ramp to 0 after 1 s of silence, auto-reconnect,
+WS status in the ?debug=1 overlay. Bump SW cache so Vercel clients update.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ README.md  |  23 +++++++++
+ index.html | 136 ++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ sw.js      |   2 +-
+ 3 files changed, 159 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index b8894e6..a76783b 100644
+--- a/README.md
++++ b/README.md
+@@ -46,6 +46,29 @@ window.setContingency(false)  // true = follow drive, false = fixed moderate rat
+ A real sensor bridge can call `setDrive()` at ~20 Hz; nothing else in the
+ code needs to change.
+ 
++## Sensor bridge (CENTAD EMG node)
++
++Opt-in. Add `?ws=<url>` and the display connects to a WebSocket and calls
++`setDrive(act)` for every message that carries a numeric `act` (0–1):
++
++| URL | Effect |
++| --- | --- |
++| `/` | No bridge. Behaviour unchanged. |
++| `/?ws=ws://centad-emg.local:81` | Connect to the EMG node (Pico 2 W). |
++| `/?ws=auto` | Connect to `ws://<this page's host>:81`; use when the Pico serves the page. |
++| `/?ws=auto&debug=1` | As above, plus the debug overlay, which now shows WS state, message rate, last `act` and the sensor status. |
++
++If no data arrives for more than 1 s (cable off, Wi-Fi dropped, Pico
++rebooted) drive ramps to 0 over 0.5 s, so the dog always comes to rest.
++The socket reconnects automatically (0.5 s → 5 s back-off) and straight away
++when the iPad wakes the tab.
++
++**Mixed content:** browsers refuse a `ws://` socket from an `https://` page,
++so the bridge cannot work on the Vercel deployment; the overlay will read
++`ws blocked`. On the rig, open the copy the Pico serves over plain HTTP
++instead: `http://centad-emg.local/` (the Pico redirects that to `/?ws=auto`).
++The Vercel site keeps working as a sensor-less demo.
++
+ ## Deploy to Vercel
+ 
+ ```
+diff --git a/index.html b/index.html
+index 85b6530..5c96ea8 100644
+--- a/index.html
++++ b/index.html
+@@ -894,6 +894,130 @@ if (DEBUG) {
+   });
+ }
+ 
++/* ==========================================================================
++   9b. SENSOR BRIDGE (opt-in WebSocket)
++   ========================================================================== */
++/*
++   Off unless the URL has ?ws=<url>. Without it nothing below runs and the
++   display behaves exactly as before.
++
++     ?ws=ws://centad-emg.local:81   connect to the CENTAD EMG node (Pico 2 W)
++     ?ws=auto                       ws://<this page's host>:81, for when the
++                                    page itself is served by the Pico
++
++   Every message carrying a numeric `act` (0..1) is passed to setDrive().
++   Anything else (calibration events etc.) is ignored. If no data arrives for
++   STALE_MS, drive ramps to 0 so the dog never keeps running on a dead link.
++   Reconnects automatically with back-off.
++
++   Browsers refuse ws:// from an https:// page (mixed content), so on the
++   Vercel deployment this reports "blocked" instead of connecting; open the
++   copy served by the Pico (http://centad-emg.local/) instead.
++*/
++
++const Bridge = (() => {
++  const param = new URLSearchParams(location.search).get("ws");
++  const STALE_MS = 1000;           // no data for this long -> ramp to 0
++  const RAMP_DOWN_SECONDS = 0.5;   // full-scale ramp to zero when stale
++  const RETRY_MIN_MS = 500;
++  const RETRY_MAX_MS = 5000;
++
++  const state = {
++    enabled: !!param,
++    url: "",
++    status: "off",        // off | connecting | open | stale | closed | blocked
++    lastMsgAt: 0,
++    lastAct: 0,
++    sensor: "",           // Pico-side status: ok | calibrating | sensor_fault | uncalibrated
++    rateHz: 0,
++    note: "",
++  };
++  if (!state.enabled) return { state, update() {} };
++
++  state.url = param === "auto"
++    ? "ws://" + location.hostname + ":81"
++    : param;
++
++  let ws = null;
++  let retryMs = RETRY_MIN_MS;
++  let retryTimer = 0;
++  let msgCount = 0;
++  let rateWindowStart = performance.now();
++
++  function scheduleReconnect() {
++    clearTimeout(retryTimer);
++    retryTimer = setTimeout(connect, retryMs);
++    retryMs = Math.min(retryMs * 2, RETRY_MAX_MS);
++  }
++
++  function connect() {
++    clearTimeout(retryTimer);
++    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
++    state.status = "connecting";
++    try {
++      ws = new WebSocket(state.url);
++    } catch (err) {
++      // SecurityError: ws:// from an https:// page. Retrying will not help.
++      state.status = "blocked";
++      state.note = location.protocol === "https:"
++        ? "https page cannot open ws://; use http://centad-emg.local/"
++        : String(err && err.message || err);
++      return;
++    }
++    ws.onopen = () => {
++      state.status = "open";
++      state.note = "";
++      retryMs = RETRY_MIN_MS;
++    };
++    ws.onmessage = (ev) => {
++      let m;
++      try { m = JSON.parse(ev.data); } catch (_) { return; }
++      if (typeof m.status === "string") state.sensor = m.status;
++      if (typeof m.act !== "number") return;
++      state.lastMsgAt = performance.now();
++      state.lastAct = m.act;
++      msgCount++;
++      if (state.status === "stale") state.status = "open";
++      window.setDrive(m.act);
++    };
++    ws.onclose = () => {
++      ws = null;
++      if (state.status !== "blocked") state.status = "closed";
++      scheduleReconnect();
++    };
++    ws.onerror = () => { /* onclose follows and handles retry */ };
++  }
++
++  // iPad Safari kills sockets when the tab sleeps; reconnect straight away on return.
++  document.addEventListener("visibilitychange", () => {
++    if (document.visibilityState === "visible" && !ws && state.status !== "blocked") {
++      retryMs = RETRY_MIN_MS;
++      connect();
++    }
++  });
++
++  connect();
++
++  /** Called once per frame from the main loop. */
++  function update(dt) {
++    const now = performance.now();
++    if (now - rateWindowStart >= 1000) {
++      state.rateHz = msgCount * 1000 / (now - rateWindowStart);
++      msgCount = 0;
++      rateWindowStart = now;
++    }
++    const silent = state.lastMsgAt === 0 || now - state.lastMsgAt > STALE_MS;
++    if (!silent) return;
++    if (state.status === "open") state.status = "stale";
++    // Fail safe: no fresh data -> walk drive down to 0 (the display's own
++    // smoothing filter then eases the dog to a stop).
++    const d = window.getDrive();
++    if (d > 0) window.setDrive(Math.max(0, d - dt / RAMP_DOWN_SECONDS));
++  }
++
++  return { state, update };
++})();
++
+ // FPS readout, refreshed a few times a second so the HUD does not thrash layout.
+ let fpsAvg = 60;
+ let hudCountdown = 0;
+@@ -910,7 +1034,16 @@ function updateHud(dt) {
+     "drive (out) " + driveSmooth.toFixed(3) + "\n" +
+     "contingency " + (contingency ? "ON" : "OFF") + "\n" +
+     "audio       " + (Sound.isMuted() ? "MUTED" : "on") + "\n" +
+-    "fps         " + fpsAvg.toFixed(0);
++    "fps         " + fpsAvg.toFixed(0) +
++    (Bridge.state.enabled
++      ? "\n" +
++        "ws          " + Bridge.state.status +
++          (Bridge.state.status === "open" ? " " + Bridge.state.rateHz.toFixed(0) + " Hz" : "") + "\n" +
++        "ws url      " + Bridge.state.url + "\n" +
++        "emg act     " + Bridge.state.lastAct.toFixed(3) +
++          (Bridge.state.sensor ? "  (" + Bridge.state.sensor + ")" : "") +
++        (Bridge.state.note ? "\n" + Bridge.state.note : "")
++      : "");
+ }
+ 
+ 
+@@ -928,6 +1061,7 @@ function frame(now) {
+   if (dt > 0.05) dt = 0.05;
+ 
+   updateDebugInput(dt);
++  Bridge.update(dt);
+   updateDrive(dt);
+ 
+   const d = driveSmooth;
+diff --git a/sw.js b/sw.js
+index 0cc5ef0..1e55b3b 100644
+--- a/sw.js
++++ b/sw.js
+@@ -3,7 +3,7 @@
+    cache-first strategy is enough to make it fully usable offline once loaded.
+    Bump CACHE when you deploy a change, otherwise clients keep the old copy. */
+ 
+-const CACHE = "centad-v1";
++const CACHE = "centad-v2";
+ 
+ const ASSETS = [
+   "./",
+-- 
+2.37.2
+
